@@ -37,21 +37,18 @@ class Network:
 
 
 class Switch:
-    # initial_decay = 2
-
-    def __init__(self, id, num_of_ports, weight=1):
-        self.id = id
+    def __init__(self, switch_id, num_of_ports, weight=1):
+        self.id = switch_id
         self.num_of_ports = num_of_ports
         self.neighbors = [[] for _ in range(num_of_ports)]
         self.pots_status = [True] * num_of_ports
 
         # hello parameters
-        self.root_id = id
+        self.root_id = switch_id
         self.dist_from_root = 0
         self.root_port = -1
-        self.closest_switch = id
+        self.closest_switch = switch_id
         self.weight = weight
-        # self.decay = Switch.initial_decay
 
     def add_neighbor(self, neighbor_switch, port_num):
         self.neighbors[port_num].append(neighbor_switch)
@@ -66,8 +63,6 @@ class Switch:
 
         self.update_hello_parameters_by_neighbors(hello_messages)
         self.update_ports_status(hello_messages)
-
-        # self.decay -= 1
 
     def reset_hello_parameters(self):
         self.set_hello_parameters(self.id, 0, self.id, -1)
@@ -98,20 +93,23 @@ class Switch:
         for port_num in range(self.num_of_ports):
             port_hello_messages = [message[:3] for message in hello_messages if message[3] == port_num]
             self.update_port_status(port_num, port_hello_messages)
-        # if all port but the root port are False then close it to
+
+        # if all port but the root port are False then close it too
         if self.pots_status.count(True) == 1:
             self.pots_status[self.pots_status.index(True)] = False
 
     def update_port_status(self, port_num, port_hello_messages):
-        #   option 1 - the port is my source from the root
-        it_is_my_root_port = port_num == self.root_port
-        # option 2 - I'm the best supplier for this connection
+
+        # option 1 - the port is the source path from the root
+        is_it_my_root_port = port_num == self.root_port
+
+        # option 2 - this switch is the best supplier for that LAN segment
         my_message = self.get_hello_message()
         min_message = min(port_hello_messages + [my_message])
         min_root_id, min_dist_from_id, min_neighbor_id = min_message
         im_the_best_supplier = min_neighbor_id == self.id
 
-        self.pots_status[port_num] = it_is_my_root_port or im_the_best_supplier
+        self.pots_status[port_num] = is_it_my_root_port or im_the_best_supplier
 
     def __str__(self):
         return (
@@ -121,7 +119,6 @@ class Switch:
                 f"root_port: {self.root_port} " +
                 f"closest_switch: {self.closest_switch} " +
                 f"weight: {self.weight} " +
-                # f"decay: {self.decay} " +
                 f"pots_status: {self.pots_status} "
         )
 
